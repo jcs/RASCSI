@@ -258,4 +258,9 @@ help : Makefile
 ##   Debug    : Same as 'all'. Useful when using a debugger.
 .PHONY: Debug
 Debug: all
+<<<<<<< HEAD
 
+=======
+.PHONY: Debug-scsishark
+Debug-scsishark: $(SCSISHARK)
+>>>>>>> scsishark works to capture data from the scsi bus. The VCD file can be opened with GTKWave
