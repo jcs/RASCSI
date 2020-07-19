@@ -4,10 +4,13 @@
 *.cbp
 *.layout
 *.log
+*.vcd
 rascsi
-scsimon
+scsishark
 rasctl
 sasidump
 rasdump
 obj
 bin
+log.*
+
