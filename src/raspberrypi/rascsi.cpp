@@ -1222,4 +1222,3 @@ init_exit:
 	return ret;
 #endif	// BAREMETAL
 }
-
