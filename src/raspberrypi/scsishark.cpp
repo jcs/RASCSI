@@ -258,9 +258,7 @@ BYTE get_data_field(DWORD data)
 
 int pin_nums[] = {PIN_BSY,PIN_SEL,PIN_CD,PIN_IO,PIN_MSG,PIN_REQ,PIN_ACK,PIN_ATN,PIN_RST,PIN_DT0};
 
-<<<<<<< HEAD
 std::string pin_names[] = {"BSY","SEL","CD","IO","MSG","REQ","ACK","ATN","RST","DAT"};
-=======
 void vcd_output_if_changed_byte(FILE *fp, DWORD data, int pin, char symbol)
 {
     BYTE new_value = get_data_field(data);
@@ -278,7 +276,6 @@ void vcd_output_if_changed_byte(FILE *fp, DWORD data, int pin, char symbol)
         get_pin_value(data,PIN_DT0), symbol);
     }
 }
->>>>>>> Fixed order of DATA bits in the VCD
 
 
 void dump_data()
