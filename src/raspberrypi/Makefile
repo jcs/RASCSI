@@ -38,8 +38,8 @@ CXXFLAGS += -std=c++14 -iquote . -MD -MP
 ##              STANDARD or FULLSPEC. The default is STANDARD
 ##              * THIS IS TYPICALLY THE ONLY COMPILE OPTION YOU 
 ##              * NEED TO SPECIFY
-# If its not specified, build for STANDARD configuration
-CONNECT_TYPE ?= STANDARD
+# If its not specified, build for FULLSPEC configuration
+CONNECT_TYPE ?= FULLSPEC
 
 ifdef CONNECT_TYPE
 CFLAGS   += -DCONNECT_TYPE_$(CONNECT_TYPE)
@@ -50,7 +50,7 @@ RASCSI = rascsi
 RASCTL = rasctl
 RASDUMP = rasdump
 SASIDUMP = sasidump
-SCSISHARK = scsishark
+SCSIMON = scsimon
 
 SYSTEMD_CONF = /etc/systemd/system/rascsi.service
 RSYSLOG_CONF = /etc/rsyslog.d/rascsi.conf
@@ -67,12 +67,7 @@ BINDIR := ./bin/$(shell echo $(CONNECT_TYPE) | tr '[:upper:]' '[:lower:]')
 #BIN_ALL = $(RASCSI) $(RASCTL) $(RASDUMP) $(SASIDUMP) $(SCSIMON)
 # Temporarily remove the RASDUMP and RASDUMP tools, since they're not needed
 # for my specific use case. If you need them - add them back in!
-<<<<<<< HEAD
-BIN_ALL = $(BINDIR)/$(RASCSI) $(BINDIR)/$(RASCTL)
-=======
-BIN_ALL = $(RASCSI) $(RASCTL) $(SCSISHARK)
->>>>>>> Move monitor function to scsishark file
-
+BIN_ALL = $(BINDIR)/$(RASCSI) $(BINDIR)/$(RASCTL) $(BINDIR)/$(SCSIMON)
 
 SRC_RASCSI = \
 	rascsi.cpp \
@@ -87,15 +82,14 @@ SRC_RASCSI = \
 SRC_RASCSI += $(shell find ./controllers -name '*.cpp')
 SRC_RASCSI += $(shell find ./devices -name '*.cpp')
 
-SRC_SCSISHARK = \
-	scsishark.cpp \
+SRC_SCSIMON = \
+	scsimon.cpp \
 	scsi.cpp \
-	disk.cpp \
 	gpiobus.cpp \
-	ctapdriver.cpp \
-	cfilesystem.cpp \
 	filepath.cpp \
 	fileio.cpp
+SRC_SCSIMON += $(shell find ./controllers -name '*.cpp')
+SRC_SCSIMON += $(shell find ./devices -name '*.cpp')
 
 SRC_RASCTL = \
 	rasctl.cpp
@@ -115,7 +109,6 @@ SRC_SASIDUMP = \
 	filepath.cpp \
 	fileio.cpp
 
-<<<<<<< HEAD
 vpath %.h ./ ./controllers ./devices
 vpath %.cpp ./ ./controllers ./devices
 vpath %.o ./$(OBJDIR)
@@ -127,20 +120,13 @@ OBJ_RASCTL := $(addprefix $(OBJDIR)/,$(notdir $(SRC_RASCTL:%.cpp=%.o)))
 OBJ_RASDUMP := $(addprefix $(OBJDIR)/,$(notdir $(SRC_RASDUMP:%.cpp=%.o)))
 OBJ_SASIDUMP := $(addprefix $(OBJDIR)/,$(notdir $(SRC_SASIDUMP:%.cpp=%.o)))
 OBJ_SCSIMON  := $(addprefix $(OBJDIR)/,$(notdir $(SRC_SCSIMON:%.cpp=%.o)))
-=======
-OBJ_RASCSI := $(SRC_RASCSI:%.cpp=%.o)
-OBJ_RASCTL := $(SRC_RASCTL:%.cpp=%.o)
-OBJ_RASDUMP := $(SRC_RASDUMP:%.cpp=%.o)
-OBJ_SASIDUMP := $(SRC_SASIDUMP:%.cpp=%.o)
-OBJ_SCSISHARK  := $(SRC_SCSISHARK:%.cpp=%.o)
->>>>>>> Move monitor function to scsishark file
 #OBJ_ALL := $(OBJ_RASCSI) $(OBJ_RASCTL) $(OBJ_RASDUMP) $(OBJ_SASIDUMP) $(OBJ_SCSIMON)
-OBJ_ALL := $(OBJ_RASCSI) $(OBJ_RASCTL) $(OBJ_RASDUMP) $(OBJ_SASIDUMP) $(OBJ_SCSISHARK)
+OBJ_ALL := $(OBJ_RASCSI) $(OBJ_RASCTL) $(OBJ_RASDUMP) $(OBJ_SASIDUMP) $(OBJ_SCSIMON)
 
 
 # The following will include all of the auto-generated dependency files (*.d)
 # if they exist. This will trigger a rebuild of a source file if a header changes
-ALL_DEPS := $(patsubst %.o,%.d,$(OBJ_RASCSI) $(OBJ_RASCTL))
+ALL_DEPS := $(patsubst %.o,%.d,$(OBJ_RASCSI) $(OBJ_RASCTL) $(OBJ_SCSIMON))
 -include $(ALL_DEPS)
 
 $(OBJDIR) $(BINDIR):
@@ -161,37 +147,20 @@ ALL: all
 
 docs: $(DOC_DIR)/rascsi_man_page.txt $(DOC_DIR)/rasctl_man_page.txt
 
-<<<<<<< HEAD
 $(BINDIR)/$(RASCSI): $(OBJ_RASCSI) | $(BINDIR)
-	$(CXX) -o $@ $(OBJ_RASCSI) -lpthread
-
-$(BINDIR)/$(RASCTL): $(OBJ_RASCTL) $(BINDIR)
-	$(CXX) -o $@ $(OBJ_RASCTL)
-
-$(RASDUMP): $(OBJ_RASDUMP) $(BINDIR)
-	$(CXX) -o $@ $(OBJ_RASDUMP)
-
-$(SASIDUMP): $(OBJ_SASIDUMP) $(BINDIR)
-	$(CXX) -o $@ $(OBJ_SASIDUMP)
-
-$(SCSIMON): $(OBJ_SCSIMON) $(BINDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_SCSIMON) -lpthread
-=======
-$(RASCSI): $(OBJ_RASCSI)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_RASCSI) -lpthread
 
-$(RASCTL): $(OBJ_RASCTL)
+$(BINDIR)/$(RASCTL): $(OBJ_RASCTL) | $(BINDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_RASCTL)
 
-$(RASDUMP): $(OBJ_RASDUMP)
+$(BINDIR)/$(RASDUMP): $(OBJ_RASDUMP) | $(BINDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_RASDUMP)
 
-$(SASIDUMP): $(OBJ_SASIDUMP)
+$(BINDIR)/$(SASIDUMP): $(OBJ_SASIDUMP) | $(BINDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_SASIDUMP)
 
-$(SCSISHARK): $(OBJ_SCSISHARK)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_SCSISHARK) -lpthread
->>>>>>> Move monitor function to scsishark file
+$(BINDIR)/$(SCSIMON): $(OBJ_SCSIMON) | $(BINDIR)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_SCSIMON) -lpthread
 
 ##   clean    : Remove all of the object files, intermediate 
 ##              compiler files and executable files 
@@ -258,9 +227,3 @@ help : Makefile
 ##   Debug    : Same as 'all'. Useful when using a debugger.
 .PHONY: Debug
 Debug: all
-<<<<<<< HEAD
-
-=======
-.PHONY: Debug-scsishark
-Debug-scsishark: $(SCSISHARK)
->>>>>>> scsishark works to capture data from the scsi bus. The VCD file can be opened with GTKWave
