@@ -39,6 +39,10 @@
 #define	SYMBOL_PIN_IO  '('
 #define	SYMBOL_PIN_BSY ')'
 #define	SYMBOL_PIN_SEL '-'
+#define SYMBOL_PIN_PHASE '='
+
+// We'll use position 0 in the prev_value array to store the previous phase
+#define PIN_PHASE 0
 
 //---------------------------------------------------------------------------
 //
@@ -159,6 +163,15 @@ BYTE get_data_field(DWORD data)
 	return (BYTE)data_out;
 }
 
+void vcd_output_if_changed_phase(FILE *fp, DWORD data, int pin, char symbol)
+{
+    BUS::phase_t new_value = GPIOBUS::GetPhaseRaw(data);
+    if(prev_value[pin] != new_value)
+    {
+        prev_value[pin] = new_value;
+        fprintf(fp, "s%s %c\n", GPIOBUS::GetPhaseStrRaw(new_value), symbol);
+    }
+}
 
 void vcd_output_if_changed_bool(FILE *fp, DWORD data, int pin, char symbol)
 {
@@ -228,6 +241,7 @@ void create_value_change_dump()
     fprintf(fp, "$var wire 1 %c ATN $end\n", SYMBOL_PIN_ATN);
     fprintf(fp, "$var wire 1 %c RST $end\n", SYMBOL_PIN_RST);
     fprintf(fp, "$var wire 8 %c data $end\n", SYMBOL_PIN_DAT);
+    fprintf(fp, "$var string 1 %c phase $end\n", SYMBOL_PIN_PHASE);
     fprintf(fp, "$upscope $end\n");
     fprintf(fp, "$enddefinitions $end\n");
 
@@ -259,6 +273,7 @@ void create_value_change_dump()
         vcd_output_if_changed_bool(fp, data_buffer[i].data, PIN_ATN, SYMBOL_PIN_ATN);
         vcd_output_if_changed_bool(fp, data_buffer[i].data, PIN_RST, SYMBOL_PIN_RST);
         vcd_output_if_changed_byte(fp, data_buffer[i].data, PIN_DT0, SYMBOL_PIN_DAT);
+        vcd_output_if_changed_phase(fp, data_buffer[i].data, PIN_PHASE, SYMBOL_PIN_PHASE);
         i++;
     }
     fclose(fp);
@@ -319,8 +334,10 @@ void FixCpu(int cpu)
 	}
 }
 
+#ifdef DEBUG
 static DWORD high_bits = 0x0;
 static DWORD low_bits = 0xFFFFFFFF;
+#endif 
 
 //---------------------------------------------------------------------------
 //
@@ -329,8 +346,10 @@ static DWORD low_bits = 0xFFFFFFFF;
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+#ifdef DEBUG
     DWORD prev_high = high_bits;
     DWORD prev_low = low_bits;
+#endif
     DWORD prev_sample = 0xFFFFFFFF;
     DWORD this_sample = 0;
 	int ret;
@@ -372,18 +391,18 @@ int main(int argc, char* argv[])
 		if(this_sample != prev_sample)
 		{
 
+#ifdef DEBUG
             // This is intended to be a debug check to see if every pin is set
             // high and low at some point.
             high_bits |= this_sample;
             low_bits &= this_sample;
-
             if ((high_bits != prev_high) || (low_bits != prev_low))
             {
                 LOGDEBUG("   %08lX    %08lX\n",high_bits, low_bits);
             }
             prev_high = high_bits;
             prev_low = low_bits;
-
+#endif
             data_buffer[data_idx].data = this_sample;
             (void)gettimeofday(&(data_buffer[data_idx].timestamp), NULL);
             data_idx = (data_idx + 1) % MAX_BUFF_SIZE;

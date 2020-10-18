@@ -15,6 +15,7 @@
 #include "os.h"
 #include "xm6.h"
 #include "gpiobus.h"
+#include "log.h"
 
 #ifndef BAREMETAL
 #ifdef __linux__
@@ -173,7 +174,7 @@ BOOL FASTCALL GPIOBUS::Init(mode_e mode)
 	// Open /dev/mem
 	fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (fd == -1) {
-        printf("Error: Unable to open /dev/mem. Are you running as root?\n");
+        LOGERROR("Error: Unable to open /dev/mem. Are you running as root?");
 		return FALSE;
 	}
 
@@ -295,6 +296,7 @@ BOOL FASTCALL GPIOBUS::Init(mode_e mode)
 	// GPIO chip open
 	fd = open("/dev/gpiochip0", 0);
 	if (fd == -1) {
+		LOGERROR("Unable to open /dev/gpiochip0. Is RaSCSI already running?")
 		return FALSE;
 	}
 
@@ -310,6 +312,7 @@ BOOL FASTCALL GPIOBUS::Init(mode_e mode)
 
 	//Get event request
 	if (ioctl(fd, GPIO_GET_LINEEVENT_IOCTL, &selevreq) == -1) {
+		LOGERROR("Unable to register event request. Is RaSCSI already running?")
 		close(fd);
 		return FALSE;
 	}
@@ -519,27 +522,6 @@ void FASTCALL GPIOBUS::Reset()
 
 	// Initialize all signals
 	signals = 0;
-#endif // ifdef __x86_64__ || __X86__
-}
-
-//---------------------------------------------------------------------------
-//
-//	Bus signal acquisition
-//
-//---------------------------------------------------------------------------
-DWORD FASTCALL GPIOBUS::Aquire()
-{
-#if defined(__x86_64__) || defined(__X86__)
-	return 0;
-#else
-	signals = *level;
-
-#if SIGNAL_CONTROL_MODE < 2
-	// Invert if negative logic (internal processing is unified to positive logic)
-	signals = ~signals;
-#endif	// SIGNAL_CONTROL_MODE
-
-	return signals;
 #endif // ifdef __x86_64__ || __X86__
 }
 
@@ -1704,6 +1686,39 @@ void FASTCALL GPIOBUS::DrvConfig(DWORD drive)
 	data = pads[PAD_0_27];
 	pads[PAD_0_27] = (0xFFFFFFF8 & data) | drive | 0x5a000000;
 }
+
+
+//---------------------------------------------------------------------------
+//
+//	Generic Phase Acquisition (Doesn't read GPIO)
+//
+//---------------------------------------------------------------------------
+BUS::phase_t FASTCALL GPIOBUS::GetPhaseRaw(DWORD raw_data)
+{
+	DWORD mci;
+
+	// Selection Phase
+	if (GetPinRaw(raw_data, PIN_SEL)) 
+	{
+		if(GetPinRaw(raw_data, PIN_IO)){
+			return BUS::reselection;
+		}else{
+			return BUS::selection;
+		}
+	}
+
+	// Bus busy phase
+	if (!GetPinRaw(raw_data, PIN_BSY)) {
+		return BUS::busfree;
+	}
+
+	// Get target phase from bus signal line
+	mci = GetPinRaw(raw_data, PIN_MSG) ? 0x04 : 0x00;
+	mci |= GetPinRaw(raw_data, PIN_CD) ? 0x02 : 0x00;
+	mci |= GetPinRaw(raw_data, PIN_IO) ? 0x01 : 0x00;
+	return GetPhase(mci);
+}
+
 
 //---------------------------------------------------------------------------
 //
