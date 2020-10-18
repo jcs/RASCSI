@@ -26,7 +26,6 @@
 #include "gpiobus.h"
 #include "spdlog/spdlog.h"
 
-
 //---------------------------------------------------------------------------
 //
 //  Constant declarations

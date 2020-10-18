@@ -20,7 +20,7 @@
 	 snprintf(buf, sizeof(buf),__VA_ARGS__);  \
 	 spdlog::log(loglevel,buf);}while(0);
 
-#ifdef NDEBUG
+#ifndef DEBUG
 // If we're doing a non-debug build, we want to skip the overhead of
 // formatting the string, then calling the logger
 #define LOGTRACE(...)     ((void)0)

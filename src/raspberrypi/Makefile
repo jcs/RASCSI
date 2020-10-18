@@ -91,6 +91,7 @@ SRC_SCSIMON = \
 SRC_SCSIMON += $(shell find ./controllers -name '*.cpp')
 SRC_SCSIMON += $(shell find ./devices -name '*.cpp')
 
+
 SRC_RASCTL = \
 	rasctl.cpp
 #	rasctl_command.cpp
@@ -145,7 +146,7 @@ $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 all: $(BIN_ALL) docs
 ALL: all
 
-docs: $(DOC_DIR)/rascsi_man_page.txt $(DOC_DIR)/rasctl_man_page.txt
+docs: $(DOC_DIR)/rascsi_man_page.txt $(DOC_DIR)/rasctl_man_page.txt $(DOC_DIR)/scsimon_man_page.txt
 
 $(BINDIR)/$(RASCSI): $(OBJ_RASCSI) | $(BINDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_RASCSI) -lpthread
@@ -227,3 +228,5 @@ help : Makefile
 ##   Debug    : Same as 'all'. Useful when using a debugger.
 .PHONY: Debug
 Debug: all
+.PHONY: Debug-scsishark
+Debug-scsishark: $(SCSISHARK)
