@@ -21,6 +21,7 @@
 #include "devices/scsicd.h"
 #include "devices/scsimo.h"
 #include "devices/scsi_host_bridge.h"
+#include "devices/scsi_video.h"
 #include "controllers/scsidev_ctrl.h"
 #include "controllers/sasidev_ctrl.h"
 #include "gpiobus.h"
@@ -296,6 +297,8 @@ void ListDevice(FILE *fp)
 		// mount status output
 		if (pUnit->GetID() == MAKEID('S', 'C', 'B', 'R')) {
 			FPRT(fp, "%s", "HOST BRIDGE");
+		} else if (pUnit->GetID() == MAKEID('S', 'C', 'V', 'D')) {
+			FPRT(fp, "%s", "VIDEO MIRROR");
 		} else {
 			pUnit->GetPath(filepath);
 			FPRT(fp, "%s",
@@ -519,6 +522,9 @@ BOOL ProcessCmd(FILE *fp, int id, int un, int cmd, int type, char *file)
 				break;
 			case 4:		// BRIDGE
 				pUnit = new SCSIBR();
+				break;
+			case 5:		// Video Mirror
+				pUnit = new SCSIVideo();
 				break;
 			default:
 				FPRT(fp,	"Error : Invalid device type\n");
@@ -873,6 +879,8 @@ bool ParseArgument(int argc, char* argv[])
 			type = 3;
 		} else if (xstrcasecmp(path, "bridge") == 0) {
 			type = 4;
+		} else if (xstrcasecmp(path, "video") == 0) {
+			type = 5;
 		} else {
 			// Cannot determine the file type
 			fprintf(stderr,

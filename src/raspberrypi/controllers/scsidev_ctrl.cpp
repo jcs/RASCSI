@@ -16,6 +16,7 @@
 #include "controllers/scsidev_ctrl.h"
 #include "gpiobus.h"
 #include "devices/scsi_host_bridge.h"
+#include "devices/scsi_video.h"
 
 //===========================================================================
 //
@@ -877,7 +878,8 @@ void FASTCALL SCSIDEV::CmdWrite10()
 	}
 
 	// Receive message with host bridge
-	if (ctrl.unit[lun]->GetID() == MAKEID('S', 'C', 'B', 'R')) {
+	if (ctrl.unit[lun]->GetID() == MAKEID('S', 'C', 'B', 'R') ||
+	    ctrl.unit[lun]->GetID() == MAKEID('S', 'C', 'V', 'D')) {
 		CmdSendMessage10();
 		return;
 	}
@@ -1350,8 +1352,9 @@ void FASTCALL SCSIDEV::CmdSendMessage10()
 		return;
 	}
 
-	// Error if not a host bridge
-	if (ctrl.unit[lun]->GetID() != MAKEID('S', 'C', 'B', 'R')) {
+	// Error if not a host bridge or video device
+	if (ctrl.unit[lun]->GetID() != MAKEID('S', 'C', 'B', 'R') &&
+	    ctrl.unit[lun]->GetID() != MAKEID('S', 'C', 'V', 'D')) {
 		Error();
 		return;
 	}
@@ -1610,7 +1613,7 @@ void FASTCALL SCSIDEV::ReceiveNext()
 #endif	// RASCSI
 {
 #ifdef RASCSI
-	int len;
+	int len, lun;
 #endif	// RASCSI
 	BOOL result;
 	int i;
@@ -1625,6 +1628,8 @@ void FASTCALL SCSIDEV::ReceiveNext()
 #ifdef RASCSI
 	// Length != 0 if received
 	if (ctrl.length != 0) {
+		lun = (ctrl.cmd[1] >> 5) & 0x07;
+
 		// Receive
 		len = ctrl.bus->ReceiveHandShake(
 			&ctrl.buffer[ctrl.offset], ctrl.length);
@@ -1638,6 +1643,11 @@ void FASTCALL SCSIDEV::ReceiveNext()
 		// Offset and Length
 		ctrl.offset += ctrl.length;
 		ctrl.length = 0;;
+
+		if (ctrl.unit[lun]->GetID() == MAKEID('S', 'C', 'V', 'D')) {
+			((SCSIVideo*)ctrl.unit[lun])->ReceiveBuffer(len, ctrl.buffer);
+		}
+
 		return;
 	}
 #else
